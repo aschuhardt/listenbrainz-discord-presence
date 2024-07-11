@@ -47,10 +47,10 @@ def get_status():
 
     listen = client.get_playing_now(LISTENBRAINZ_USER)
 
-    logging.debug(pformat(vars(listen)))
-
     if listen is None and now_playing is None:
         return Status.NOT_PLAYING
+
+    logging.debug(pformat(vars(listen)))
 
     np = f"{f'{listen.track_name[:128]}'} | {f'{listen.artist_name} - {listen.release_name}'[:128]}"
     if np == now_playing:
