@@ -117,11 +117,7 @@ def get_status():
     logging.debug(status)
     return status
 
-
-def main():
-    RPC = Presence(client_id=DISCORD_CLIENT_ID)
-    RPC.connect()
-
+def update_status(RPC):
     status = get_status()
     if status is Status.NOT_PLAYING:
         RPC.clear()
@@ -130,19 +126,18 @@ def main():
         RPC.update(**status)
         logging.info(f'Now Playing: {now_playing}')
 
-    while True:
-        time.sleep(15)  # Can only update presence every 15 seconds
-        status = get_status()
-        if status is Status.NOT_PLAYING:
-            RPC.clear()
-            logging.info('Stopped listening')
-        elif status is Status.PLAYING:
-            logging.debug('Status.PLAYING')
-        else:
-            RPC.update(**status)
-            logging.info(f'Now Playing: {now_playing}')
+def main():
+    RPC = Presence(client_id=DISCORD_CLIENT_ID)
+    RPC.connect()
 
+    while True:
+        try:
+            update_status(RPC)
+            time.sleep(15)  # Can only update presence every 15 seconds
+        except KeyboardInterrupt:
+            return
+        except Exception as e:
+            print(e)
 
 if __name__ == "__main__":
-    logging.info('Starting...')
     main()
