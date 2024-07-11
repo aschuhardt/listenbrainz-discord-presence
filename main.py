@@ -47,7 +47,6 @@ def get_status():
 
     listen = client.get_playing_now(LISTENBRAINZ_USER)
 
-    logging.debug('get_playing_now()')
     logging.debug(pformat(vars(listen)))
 
     if listen is None and now_playing is None:
@@ -58,47 +57,48 @@ def get_status():
         return Status.PLAYING
     now_playing = np
 
-    musicbrainzngs.set_useragent(MB_APP_NAME, MB_APP_VERSION, MB_CONTACT)
-
-    release_info = musicbrainzngs.get_release_by_id(
-        listen.release_mbid, includes=['release-groups'])
-    logging.debug('get_release_by_id')
-    logging.debug(pformat(release_info))
-    release_group_id = release_info['release']['release-group']['id']
-
     # get album art
-    album_art = 'navidrome'
-    try:
-        result = musicbrainzngs.get_release_group_image_list(release_group_id)
-        logging.debug('get_release_group_image_list')
-        logging.debug(pformat(result))
-    except requests.exceptions.HTTPError as e:
-        # handle HTTP errors
-        logging.error(f'HTTP error occurred: {e}')
-    except musicbrainzngs.ResponseError as e:
-        error_code = int(str(e.cause).split()[2][:3])
-        if error_code == 400:
-            logging.error('Invalid release_group_id')
-        elif error_code == 404:
-            logging.error('Release group not found')
-        elif error_code == 503:
-            logging.error('Rate limit exceeded')
+    album_art = 'icon'
+
+    if listen.release_mbid is not None:
+        musicbrainzngs.set_useragent(MB_APP_NAME, MB_APP_VERSION, MB_CONTACT)
+
+        release_info = musicbrainzngs.get_release_by_id(
+            listen.release_mbid, includes=['release-groups'])
+        logging.debug(pformat(release_info))
+        release_group_id = release_info['release']['release-group']['id']
+
+        try:
+            result = musicbrainzngs.get_release_group_image_list(release_group_id)
+            logging.debug('get_release_group_image_list')
+            logging.debug(pformat(result))
+        except requests.exceptions.HTTPError as e:
+            # handle HTTP errors
+            logging.error(f'HTTP error occurred: {e}')
+        except musicbrainzngs.ResponseError as e:
+            error_code = int(str(e.cause).split()[2][:3])
+            if error_code == 400:
+                logging.error('Invalid release_group_id')
+            elif error_code == 404:
+                logging.error('Release group not found')
+            elif error_code == 503:
+                logging.error('Rate limit exceeded')
+            else:
+                logging.error('Unknown error')
+            # handle MusicBrainz API errors
+            logging.error(f'MusicBrainz API error occurred: {e}')
+            logging.error(
+                f'On release: {listen.artist_name} - {listen.release_name}')
         else:
-            logging.error('Unknown error')
-        # handle MusicBrainz API errors
-        logging.error(f'MusicBrainz API error occurred: {e}')
-        logging.error(
-            f'On release: {listen.artist_name} - {listen.release_name}')
-    else:
-        # success
-        images = result['images']
-        image = None
-        for img in images:
-            if 'Front' in img['types']:
-                image = img
-                break
-        if image is not None:
-            album_art = img['thumbnails']['large']
+            # success
+            images = result['images']
+            image = None
+            for img in images:
+                if 'Front' in img['types']:
+                    image = img
+                    break
+            if image is not None:
+                album_art = img['thumbnails']['large']
 
     details = listen.track_name[:128]
     state = f'{listen.artist_name} - {listen.release_name}'[:128]
@@ -107,12 +107,13 @@ def get_status():
         'details': details,
         'state': state,
         'large_image': album_art,
-        'large_text': f'{listen.artist_name} - {listen.release_name}',
+        'large_text': f'{listen.artist_name} - {listen.release_name}'
     }
-    if album_art != 'navidrome':
-        status['small_image'] = 'navidrome'
-        status['small_text'] = 'Navidrome'
-    logging.debug('status')
+
+    if album_art != 'icon':
+        status['small_image'] = 'icon'
+        status['small_text'] = 'icon'
+
     logging.debug(status)
     return status
 
