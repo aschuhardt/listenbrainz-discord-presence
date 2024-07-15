@@ -46,6 +46,7 @@ def get_status():
     global now_playing
 
     listen = client.get_playing_now(LISTENBRAINZ_USER)
+    status = {}
 
     if listen is None and now_playing is None:
         return Status.NOT_PLAYING
@@ -122,6 +123,8 @@ def update_status(RPC):
     if status is Status.NOT_PLAYING:
         RPC.clear()
         logging.info('Stopped listening')
+    elif status is Status.PLAYING:
+        logging.debug(f'Still playing {now_playing}')
     else:
         RPC.update(**status)
         logging.info(f'Now Playing: {now_playing}')
